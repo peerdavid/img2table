@@ -82,6 +82,19 @@ def remove_unwanted_elements(table: Table, elements: List[Cell]) -> Table:
     table.remove_rows(row_ids=empty_rows)
     table.remove_columns(col_ids=empty_cols)
 
+    # Remove duplicated columns (e.g. 2 cols at x1 - x2)
+    if len(table.items) <= 0:
+        return table
+    
+    for row in table.items:
+        cols = row.items
+        for idx in range(len(cols)-1, 0, -1):
+            col_a = cols[idx-1]
+            col_b = cols[idx]
+            should_remove = col_a.x1 == col_b.x1 and col_a.x2 == col_b.x2
+            if should_remove:
+                del cols[idx]
+            
     return table
 
 

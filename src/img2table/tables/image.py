@@ -3,6 +3,7 @@ import copy
 from dataclasses import dataclass
 from functools import cached_property
 from typing import List
+from PIL import Image, ImageDraw
 
 import cv2
 import numpy as np
@@ -52,17 +53,19 @@ class TableImage:
 
         return white_img
 
-    def extract_bordered_tables(self, implicit_rows: bool = True):
+    def extract_bordered_tables(self, implicit_rows: bool = True, num_additional_lines=3, extended_heuristic=True):
         """
         Identify and extract bordered tables from image
         :param implicit_rows: boolean indicating if implicit rows are splitted
+        :param num_additional_lines: number of additional lines to add to each table in case the (multirow /col ) header has no lines
         :return:
         """
         # Apply thresholding
         self.thresh = threshold_dark_areas(img=self.img, char_length=self.char_length)
 
         # Compute parameters for line detection
-        minLinLength = maxLineGap = max(int(round(0.33 * self.median_line_sep)), 1) if self.median_line_sep else 10
+        minLinLength = max(int(round(0.33 * self.median_line_sep)), 1) if self.median_line_sep else 10
+        maxLineGap = minLinLength / 2
         kernel_size = max(int(round(0.66 * self.median_line_sep)), 1) if self.median_line_sep else 20
 
         # Detect rows in image
@@ -75,6 +78,46 @@ class TableImage:
                                         minLinLength=minLinLength,
                                         maxLineGap=maxLineGap,
                                         kernel_size=kernel_size)
+
+        # Create raw tables without the header in case there is no top line
+        # Create cells from rows
+        cells = get_cells(horizontal_lines=h_lines,
+                          vertical_lines=v_lines)
+
+        # Create tables from rows
+        self.tables = get_tables(cells=cells,
+                                 elements=self.contours,
+                                 lines=h_lines + v_lines,
+                                 char_length=self.char_length)
+        
+        if extended_heuristic:
+            # Now we artifically add new h_lines at the top of each table in case there is a header text wihtout a header line
+            # Will be filtered anyway if its not part of the table but this way we ensure there is always a header line.
+            # Its based on the average gap a table has between rows / columns
+            # h_lines, v_lines = [], []
+            for table in self.tables:
+                row_ys = [row.y1 for row in table.items]
+                col_xs = [col.x1 for col in table.items[0].items]
+
+                if len(row_ys) < 2 or len(col_xs) < 2:
+                    continue
+ 
+                gap_h = int(sum([row_ys[i+1] - row_ys[i] for i in range(len(row_ys)-1)]) / (len(row_ys)-1))
+                gap_w = int(sum([col_xs[i+1] - col_xs[i] for i in range(len(col_xs)-1)]) / (len(col_xs)-1))
+                
+                # Draw some lines around our table to detect non-bordered columns or rows.
+                # Note that we keep at least a distance of k to our table to ensure that text cells are still contained.
+                k = 5
+                num_additional_lines += 1
+                for i in range(0, num_additional_lines):
+                    h_lines.append(Line(x1=table.x1, y1=table.y1-gap_h*i-k, x2=table.x2, y2=table.y1-gap_h*i-k, thickness=4))
+                    h_lines.append(Line(x1=table.x1, y1=table.y2+gap_h*i+k, x2=table.x2, y2=table.y2+gap_h*i+k, thickness=4))
+
+                    v_lines.append(Line(x1=table.x1-gap_w*i-k, y1=table.y1, x2=table.x1-gap_w*i-k, y2=table.y2, thickness=4))
+                    v_lines.append(Line(x1=table.x2+gap_w*i+k, y1=table.y1, x2=table.x2+gap_w*i+k, y2=table.y2, thickness=4))
+                
+
+        # Finally, set all our lines
         self.lines = h_lines + v_lines
 
         # Create cells from rows
@@ -86,6 +129,7 @@ class TableImage:
                                  elements=self.contours,
                                  lines=self.lines,
                                  char_length=self.char_length)
+        
 
         # If necessary, detect implicit rows
         if implicit_rows:
@@ -111,9 +155,9 @@ class TableImage:
                                                         existing_tables=self.tables)
 
             # Add to tables
-            self.tables += [tb for tb in borderless_tbs if tb.nb_rows >= 2 and tb.nb_columns >= 3]
+            self.tables += [tb for tb in borderless_tbs if tb.nb_rows >= 2 and tb.nb_columns >= 2]
 
-    def extract_tables(self, implicit_rows: bool = False, borderless_tables: bool = False) -> List[Table]:
+    def extract_tables(self, implicit_rows: bool = False, borderless_tables: bool = False, extended_heuristic: bool = True) -> List[Table]:
         """
         Identify and extract tables from image
         :param implicit_rows: boolean indicating if implicit rows are splitted
@@ -121,10 +165,10 @@ class TableImage:
         :return: list of identified tables
         """
         # Extract bordered tables
-        self.extract_bordered_tables(implicit_rows=implicit_rows)
+        self.extract_bordered_tables(implicit_rows=implicit_rows, extended_heuristic=extended_heuristic)
 
         if borderless_tables:
             # Extract borderless tables
             self.extract_borderless_tables()
 
-        return self.tables
+        return self.tables, self.lines

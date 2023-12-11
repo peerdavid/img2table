@@ -25,6 +25,9 @@ def get_tables(cells: List[Cell], elements: List[Cell], lines: List[Line], char_
     clusters_normalized = [normalize_table_cells(cluster_cells=cluster_cells)
                            for cluster_cells in list_cluster_cells]
 
+    # Remove 0 clusters
+    clusters_normalized = [cluster for cluster in clusters_normalized if len(cluster) > 0]
+    
     # Add semi-bordered cells to clusters
     complete_clusters = [add_semi_bordered_cells(cluster=cluster, lines=lines, char_length=char_length)
                          for cluster in clusters_normalized]

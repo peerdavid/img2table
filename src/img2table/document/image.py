@@ -39,8 +39,10 @@ class Image(Document):
         :param min_confidence: minimum confidence level from OCR in order to process text, from 0 (worst) to 99 (best)
         :return: list of extracted tables
         """
-        extracted_tables = super(Image, self).extract_tables(ocr=ocr,
+        extracted_tables, lines = super(Image, self).extract_tables(ocr=ocr,
                                                              implicit_rows=implicit_rows,
                                                              borderless_tables=borderless_tables,
                                                              min_confidence=min_confidence)
-        return extracted_tables.get(0)
+
+        single_page = extracted_tables.get(0)
+        return single_page, lines

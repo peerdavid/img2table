@@ -87,6 +87,7 @@ class Document(Validations):
         # Retrieve table contents with ocr
         for idx, page in enumerate(table_pages):
             ocr_df_page = self.ocr_df.page(page_number=idx)
+
             # Get table content
             tables[page] = [table.get_content(ocr_df=ocr_df_page, min_confidence=min_confidence)
                             for table in tables[page]]
@@ -104,26 +105,33 @@ class Document(Validations):
         self.ocr_df = None
 
         return {k: [tb.extracted_table for tb in v
-                    if (max(tb.nb_rows, tb.nb_columns) >= 2 and not tb._borderless)
-                    or (tb.nb_rows >= 2 and tb.nb_columns >= 3)]
+                    if (max(tb.nb_rows, tb.nb_columns) >= 1 and not tb._borderless)
+                    or (tb.nb_rows >= 1 and tb.nb_columns >= 1)]
                 for k, v in tables.items()}
 
     def extract_tables(self, ocr: "OCRInstance" = None, implicit_rows: bool = False, borderless_tables: bool = False,
-                       min_confidence: int = 50) -> Dict[int, List[ExtractedTable]]:
+                       min_confidence: int = 50, extended_heuristic: bool = True) -> Dict[int, List[ExtractedTable]]:
         """
         Extract tables from document
         :param ocr: OCRInstance object used to extract table content
         :param implicit_rows: boolean indicating if implicit rows are splitted
         :param borderless_tables: boolean indicating if borderless tables should be detected
         :param min_confidence: minimum confidence level from OCR in order to process text, from 0 (worst) to 99 (best)
+        :param extended_heuristic: boolean indicating if extended heuristic should be used for better table extraction
         :return: dictionary with page number as key and list of extracted tables as values
         """
         # Extract tables from document
         from img2table.tables.image import TableImage
-        tables = {idx: TableImage(img=img,
+        
+        tables = {}
+        hlines = []
+        for idx, img in enumerate(self.images):
+            table, hl = TableImage(img=img,
                                   min_confidence=min_confidence).extract_tables(implicit_rows=implicit_rows,
-                                                                                borderless_tables=borderless_tables)
-                  for idx, img in enumerate(self.images)}
+                                                                                borderless_tables=borderless_tables,
+                                                                                extended_heuristic=extended_heuristic)
+            tables[idx] = table
+            hlines.append(hl)
 
         # Update table content with OCR if possible
         tables = self.get_table_content(tables=tables,
@@ -134,7 +142,7 @@ class Document(Validations):
         if self.pages:
             tables = {self.pages[k]: v for k, v in tables.items()}
 
-        return tables
+        return tables, hlines
 
     def to_xlsx(self, dest: Union[str, Path, io.BytesIO], ocr: "OCRInstance" = None, implicit_rows: bool = False,
                 borderless_tables: bool = False, min_confidence: int = 50) -> Optional[io.BytesIO]:
