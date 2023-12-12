@@ -7,3 +7,4 @@ from img2table.ocr.easyocr import EasyOCR
 from img2table.ocr.google_vision import VisionOCR
 from img2table.ocr.paddle import PaddleOCR
 from img2table.ocr.tesseract import TesseractOCR
+from img2table.ocr.ocr_wrapper import OCRWrapper
