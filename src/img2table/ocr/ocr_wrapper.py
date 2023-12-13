@@ -16,15 +16,17 @@ except ImportError:
 
 class OCRWrapper(OCRInstance):
     """
-    EAsyOCR instance
+    ocr_wrapper instance
     """
-    def __init__(self, bboxes: list[BBox]):
-        self.bboxes = bboxes
+    def __init__(self):
         if not supported:
             raise ImportError("OCRWrapper is not supported on this platform. Please install ocr_wrapper first.")
 
     def content(self, document: Document) -> List[List[Tuple]]:
-        return self.bboxes
+        if document.bboxes is None:
+            raise Exception("No bboxes found for this document")
+
+        return document.bboxes
 
     def to_ocr_dataframe(self, content: List[List[dict]]) -> OCRDataframe:
         """
@@ -53,4 +55,5 @@ class OCRWrapper(OCRInstance):
                     "y2": round(bbox["bbox"].BRy * h),
                 })
 
-        return OCRDataframe(df=pl.LazyFrame(ret)) if ret else None
+        ret = OCRDataframe(df=pl.LazyFrame(ret)) if ret else None
+        return ret

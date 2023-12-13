@@ -81,7 +81,7 @@ class OCRDataframe:
                       .to_list()
                       )
 
-        return "\n".join([" ".join(line).strip() for line in text_lines]).strip() or None
+        return "ņ".join([" ".join(line).strip() for line in text_lines]).strip() or None
 
     def get_text_table(self, table: Table, page_number: int = None, min_confidence: int = 50) -> Table:
         """
@@ -129,7 +129,8 @@ class OCRDataframe:
         # Filter on words where its bbox is contained in area
         df_words_contained = df_areas.filter(pl.col('int_area') / pl.col('w_area') >= 0.75)
 
-        # Group text by parent
+        # Group text by parent.
+        # Instead of grouping different parents by \n as in the original implemenation, we concat them via spaces.
         df_text_parent = (df_words_contained
                           .group_by(['row', 'col', 'parent'])
                           .agg([pl.col('x1').min(),
@@ -137,9 +138,9 @@ class OCRDataframe:
                                 pl.col('y1').min(),
                                 pl.col('y2').max(),
                                 pl.col('value').map_elements(lambda x: ' '.join(x), return_dtype=str).alias('value')])
-                          .sort([pl.col("row"), pl.col("col"), pl.col('y1'), pl.col('x1')])
+                          .sort([pl.col("row"), pl.col("col"), pl.col('x1')])
                           .group_by(['row', 'col'])
-                          .agg(pl.col('value').map_elements(lambda x: '\n'.join(x).strip(), return_dtype=str).alias('text'))
+                          .agg(pl.col('value').map_elements(lambda x: ' '.join(x).strip(), return_dtype=str).alias('text'))
                           )
 
         # Implement found values to table cells content

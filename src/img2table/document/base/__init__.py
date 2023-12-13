@@ -20,15 +20,22 @@ if typing.TYPE_CHECKING:
 @dataclass
 class MockDocument:
     images: List[np.ndarray]
+    bboxes: list | None = None
 
 
 @dataclass
 class Document(Validations):
     src: Union[str, Path, io.BytesIO, bytes]
+    bboxes: list | None = None
 
     def validate_src(self, value, **_) -> Union[str, Path, io.BytesIO, bytes]:
         if not isinstance(value, (str, Path, io.BytesIO, bytes)):
             raise TypeError(f"Invalid type {type(value)} for src argument")
+        return value
+    
+    def validate_bboxes(self, value, **_) -> list | None:
+        if value is not None and not isinstance(value, list):
+            raise TypeError(f"Invalid type {type(value)} for bboxes argument")
         return value
 
     def validate_detect_rotation(self, value, **_) -> int:
@@ -78,7 +85,7 @@ class Document(Validations):
             return {k: [tb.extracted_table for tb in v] for k, v in tables.items()}
 
         # Create document containing only pages
-        ocr_doc = MockDocument(images=[self.images[page] for page in table_pages])
+        ocr_doc = MockDocument(images=[self.images[page] for page in table_pages], bboxes=self.bboxes)
 
         # Get OCRDataFrame object
         if self.ocr_df is None and ocr is not None:

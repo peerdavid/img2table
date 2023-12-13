@@ -30,6 +30,10 @@ def check_column_coherency(table: Table, char_length: float) -> bool:
     """
     if table.nb_columns < 2:
         return False
+    
+    # Each row must have the same number of columns
+    if not all([len(row.items) == table.nb_columns for row in table.items]):
+        return False
 
     # Get column widths
     col_widths = list()

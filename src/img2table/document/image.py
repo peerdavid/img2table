@@ -17,6 +17,7 @@ class Image(Document):
 
     def __post_init__(self):
         self.pages = None
+        self.bboxes = [self.bboxes]
 
         super(Image, self).__post_init__()
 
@@ -30,7 +31,7 @@ class Image(Document):
             return [img]
 
     def extract_tables(self, ocr: "OCRInstance" = None, implicit_rows: bool = False, borderless_tables: bool = False,
-                       min_confidence: int = 50) -> List[ExtractedTable]:
+                       min_confidence: int = 50, extended_heuristic: bool=True) -> List[ExtractedTable]:
         """
         Extract tables from document
         :param ocr: OCRInstance object used to extract table content
@@ -42,7 +43,8 @@ class Image(Document):
         extracted_tables, lines = super(Image, self).extract_tables(ocr=ocr,
                                                              implicit_rows=implicit_rows,
                                                              borderless_tables=borderless_tables,
-                                                             min_confidence=min_confidence)
+                                                             min_confidence=min_confidence,
+                                                             extended_heuristic=extended_heuristic,)
 
         single_page = extracted_tables.get(0)
         return single_page, lines
