@@ -16,6 +16,7 @@ if typing.TYPE_CHECKING:
     from img2table.ocr.base import OCRInstance
     from img2table.tables.objects.table import Table
 
+import logging
 
 @dataclass
 class MockDocument:
@@ -95,9 +96,17 @@ class Document(Validations):
         for idx, page in enumerate(table_pages):
             ocr_df_page = self.ocr_df.page(page_number=idx)
 
-            # Get table content
-            tables[page] = [table.get_content(ocr_df=ocr_df_page, min_confidence=min_confidence)
-                            for table in tables[page]]
+            # Get table content, but only if everything is ok
+            correct_tables = []
+            for table in tables[page]:
+                try:
+                    table.get_content(ocr_df=ocr_df_page, min_confidence=min_confidence)
+                    correct_tables.append(table)
+                except Exception as e:
+                    logging.warning(f"Failed to extract table content: Page {page}, Error '{e}'")
+            
+            tables[page] = correct_tables
+
 
             # Filter relevant tables
             tables[page] = [table for table in tables[page] if max(table.nb_rows, table.nb_columns) >= 2]
@@ -107,6 +116,7 @@ class Document(Validations):
             tables[page] = get_title_tables(img=self.images[page],
                                             tables=tables[page],
                                             ocr_df=ocr_df_page)
+
 
         # Reset OCR
         self.ocr_df = None

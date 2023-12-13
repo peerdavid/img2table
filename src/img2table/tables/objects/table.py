@@ -124,20 +124,21 @@ class Table(TableObject):
         # Get content for each cell
         self = ocr_df.get_text_table(table=self, min_confidence=min_confidence)
 
+        # We simply don't care about empty cols or rows, so we keep them
         # Check for empty rows and remove if necessary
-        empty_rows = list()
-        for idx, row in enumerate(self.items):
-            if all(map(lambda c: c.content is None, row.items)):
-                empty_rows.append(idx)
-        self.remove_rows(row_ids=empty_rows)
+        # empty_rows = list()
+        # for idx, row in enumerate(self.items):
+        #     if all(map(lambda c: c.content is None, row.items)):
+        #         empty_rows.append(idx)
+        # self.remove_rows(row_ids=empty_rows)
 
         # Check for empty columns and remove if necessary
-        empty_cols = list()
-        for idx in range(self.nb_columns):
-            col_cells = [row.items[idx] for row in self.items]
-            if all(map(lambda c: c.content is None, col_cells)):
-                empty_cols.append(idx)
-        self.remove_columns(col_ids=empty_cols)
+        # empty_cols = list()
+        # for idx in range(self.nb_columns):
+        #     col_cells = [row.items[idx] for row in self.items]
+        #     if all(map(lambda c: c.content is None, col_cells)):
+        #         empty_cols.append(idx)
+        # self.remove_columns(col_ids=empty_cols)
 
         # Check for uniqueness of content
         unique_cells = set([cell for row in self.items for cell in row.items])
