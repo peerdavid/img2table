@@ -42,6 +42,13 @@ class OCRWrapper(OCRInstance):
             for bbox in ocr_result:
                 word_id += 1
                 w, h = bbox["bbox"].original_width, bbox["bbox"].original_height
+                
+                # Bboxes are not perfect, so we round a bit. Otherwise, text is 
+                # shown in wrong order within cells...
+                x1 = round(bbox["bbox"].TLx * w / 10) * 10
+                y1 = round(bbox["bbox"].TLy * h / 10) * 10
+                x2 = round(bbox["bbox"].BRx * w / 10) * 10
+                y2 = round(bbox["bbox"].BRy * h / 10) * 10
                 ret.append({
                     "page": page,
                     "class": "ocrx_word",
@@ -49,10 +56,10 @@ class OCRWrapper(OCRInstance):
                     "parent": f"word_{page + 1}_{word_id}",
                     "value": bbox["text"],
                     "confidence": round(100 * bbox["confidence"]),
-                    "x1": round(bbox["bbox"].TLx * w),
-                    "y1": round(bbox["bbox"].TLy * h),
-                    "x2": round(bbox["bbox"].BRx * w),
-                    "y2": round(bbox["bbox"].BRy * h),
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
                 })
 
         ret = OCRDataframe(df=pl.LazyFrame(ret)) if ret else None
