@@ -81,7 +81,7 @@ class OCRDataframe:
                       .to_list()
                       )
 
-        return "ņ".join([" ".join(line).strip() for line in text_lines]).strip() or None
+        return " ".join([" ".join(line).strip() for line in text_lines]).strip() or None
 
     def get_text_table(self, table: Table, page_number: int = None, min_confidence: int = 50) -> Table:
         """
