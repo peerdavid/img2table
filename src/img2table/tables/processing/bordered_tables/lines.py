@@ -24,7 +24,7 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
     thresh_kernel = thresh_kernel + 1 if thresh_kernel % 2 == 0 else thresh_kernel
     img = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, thresh_kernel, 5)
     # save img
-    cv2.imwrite("cv_1.png", img)
+    # cv2.imwrite("cv_1.png", img)
 
     # Detect vertical and horizontal lines of min. length
     size = int(max(15, 2 * char_length))
@@ -45,7 +45,7 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
         cv2.drawContours(img_cnt, [c], -1, (255,255,255), 1)
     
     img = img_cnt
-    cv2.imwrite("cv_2.png", img)
+    # cv2.imwrite("cv_2.png", img)
 
     return img
 
