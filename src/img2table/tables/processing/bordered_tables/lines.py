@@ -18,32 +18,34 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
     :param char_length: average character length
     :return: threshold image
     """
-    # Get threshold on image and binary image
+    # Get black image with white edges
     blur = cv2.GaussianBlur(img, (3, 3), 0)
-
     thresh_kernel = max(int(round(char_length)), 1) if char_length else 21
     thresh_kernel = thresh_kernel + 1 if thresh_kernel % 2 == 0 else thresh_kernel
+    img = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, thresh_kernel, 5)
 
-    thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, thresh_kernel, 5)
-    binary_thresh = cv2.adaptiveThreshold(255 - blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, thresh_kernel, 5)
+    # Detect vertical and horizontal lines of min. length
+    size = int(max(15, 2 * char_length))
+    img_cnt = np.zeros(img.shape, dtype=np.uint8)
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (size,1))
+    remove_horizontal = cv2.morphologyEx(img, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+    cnts = cv2.findContours(remove_horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    for c in cnts:
+        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 1)
+    
+    # Now the same for vertical
+    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,size))
+    remove_vertical = cv2.morphologyEx(img, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
+    cnts = cv2.findContours(remove_vertical, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    for c in cnts:
+        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 1)
+    
+    img = img_cnt
 
-    # Mask on areas with dark background
-    blur_size = min(255, max(int(2 * char_length) + 1 - int(2 * char_length) % 2, 1) if char_length else 11)
-    blur = cv2.GaussianBlur(img, (blur_size, blur_size), 0)
-    mask = cv2.inRange(blur, 0, 100)
-
-    # Get contours of dark areas
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # For each dark area, use binary threshold instead of regular threshold
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-
-        margin = int(char_length) if char_length else 21
-        if min(w, h) > 2 * margin and w * h / np.prod(img.shape[:2]) < 0.9:
-            thresh[y+margin:y+h-margin, x+margin:x+w-margin] = binary_thresh[y+margin:y+h-margin, x+margin:x+w-margin]
-
-    return thresh
+    # cv2.imwrite("cv_3.png", img)
+    return img
 
 
 def dilate_dotted_lines(thresh: np.ndarray, char_length: float, contours: List[Cell]) -> np.ndarray:
