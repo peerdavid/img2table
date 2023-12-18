@@ -53,11 +53,11 @@ class TableImage:
 
         return white_img
 
-    def extract_bordered_tables(self, implicit_rows: bool = True, num_additional_lines=3, extended_heuristic=True):
+    def extract_bordered_tables(self, implicit_rows: bool = True, num_add_rows=2, extended_heuristic=True):
         """
         Identify and extract bordered tables from image
         :param implicit_rows: boolean indicating if implicit rows are splitted
-        :param num_additional_lines: number of additional lines to add to each table in case the (multirow /col ) header has no lines
+        :param num_add_rows: number of additional rows to add to each table in case the (multirow /col ) header has no lines
         :return:
         """
         # Apply thresholding
@@ -91,6 +91,18 @@ class TableImage:
                                  char_length=self.char_length)
         
         if extended_heuristic:
+            def not_in_any_table(pos_y):
+                for table in self.tables:
+                    if table.y1 <= pos_y <= table.y2:
+                        return True
+                return False
+
+            def check_if_x_in_table(pos_x):
+                for table in self.tables:
+                    if table.x1 <= pos_x <= table.x2:
+                        return True
+                return False
+
             # Now we artifically add new h_lines at the top of each table in case there is a header text wihtout a header line
             # Will be filtered anyway if its not part of the table but this way we ensure there is always a header line.
             # Its based on the average gap a table has between rows / columns
@@ -104,17 +116,27 @@ class TableImage:
  
                 gap_h = int(sum([row_ys[i+1] - row_ys[i] for i in range(len(row_ys)-1)]) / (len(row_ys)-1))
                 gap_w = int(sum([col_xs[i+1] - col_xs[i] for i in range(len(col_xs)-1)]) / (len(col_xs)-1))
-                
+
                 # Draw some lines around our table to detect non-bordered columns or rows.
                 # Note that we keep at least a distance of k to our table to ensure that text cells are still contained.
                 k = 5
-                num_additional_lines += 1
-                for i in range(0, num_additional_lines):
-                    h_lines.append(Line(x1=table.x1, y1=table.y1-gap_h*i-k, x2=table.x2, y2=table.y1-gap_h*i-k, thickness=4))
-                    h_lines.append(Line(x1=table.x1, y1=table.y2+gap_h*i+k, x2=table.x2, y2=table.y2+gap_h*i+k, thickness=4))
+                num_add_rows += 1
+                for i in range(0, num_add_rows):
+                    pos = table.y1 - gap_h*i - k
+                    if not not_in_any_table(pos):
+                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=4))
+                    
+                    pos = table.y2 + gap_h*i + k
+                    if not not_in_any_table(pos):
+                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=4))
 
-                    v_lines.append(Line(x1=table.x1-gap_w*i-k, y1=table.y1, x2=table.x1-gap_w*i-k, y2=table.y2, thickness=4))
-                    v_lines.append(Line(x1=table.x2+gap_w*i+k, y1=table.y1, x2=table.x2+gap_w*i+k, y2=table.y2, thickness=4))
+                    pos = table.x1 - gap_w*i - k
+                    if not check_if_x_in_table(pos):
+                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=4))
+                    
+                    pos = table.x2 + gap_w*i + k
+                    if not check_if_x_in_table(pos):
+                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=4))
                 
 
         # Finally, set all our lines
