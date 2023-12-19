@@ -18,11 +18,12 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
     :param char_length: average character length
     :return: threshold image
     """
-    char_length = char_length or 12
+    char_length = char_length or 21
+    # cv2.imwrite("cv_0.png", img)
     
     # Get black image with white edges
     blur = cv2.GaussianBlur(img, (3, 3), 0)
-    thresh_kernel = max(int(round(char_length)), 1) if char_length else 21
+    thresh_kernel = max(int(round(char_length)), 1)
     thresh_kernel = thresh_kernel + 1 if thresh_kernel % 2 == 0 else thresh_kernel
     img = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, thresh_kernel, 5)
     # save img
@@ -36,15 +37,15 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
     cnts = cv2.findContours(remove_horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
     for c in cnts:
-        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 1)
+        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 3)
     
     # Now the same for vertical
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,size))
+    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, int(size/2)))
     remove_vertical = cv2.morphologyEx(img, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
     cnts = cv2.findContours(remove_vertical, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
     for c in cnts:
-        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 1)
+        cv2.drawContours(img_cnt, [c], -1, (255,255,255), 3)
     
     img = img_cnt
     # cv2.imwrite("cv_2.png", img)

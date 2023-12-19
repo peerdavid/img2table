@@ -85,7 +85,7 @@ def remove_unwanted_elements(table: Table, elements: List[Cell]) -> Table:
     # Remove duplicated columns (e.g. 2 cols at x1 - x2)
     if len(table.items) <= 0:
         return table
-    
+
     for row in table.items:
         cols = row.items
         for idx in range(len(cols)-1, 0, -1):
@@ -94,7 +94,7 @@ def remove_unwanted_elements(table: Table, elements: List[Cell]) -> Table:
             should_remove = col_a.x1 == col_b.x1 and col_a.x2 == col_b.x2
             if should_remove:
                 del cols[idx]
-            
+
     return table
 
 
@@ -143,6 +143,6 @@ def cluster_to_table(cluster_cells: List[Cell], elements: List[Cell], borderless
     table = Table(rows=list_rows, borderless=borderless)
 
     # Remove empty/unnecessary rows and columns from the table, based on elements
-    processed_table = remove_unwanted_elements(table=table, elements=elements)
+    table = remove_unwanted_elements(table=table, elements=elements)
 
-    return processed_table
+    return table

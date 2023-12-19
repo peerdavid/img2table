@@ -19,7 +19,6 @@ from img2table.tables.processing.bordered_tables.tables.implicit_rows import han
 from img2table.tables.processing.borderless_tables import identify_borderless_tables
 from img2table.tables.processing.prepare_image import prepare_image
 
-
 @dataclass
 class TableImage:
     img: np.ndarray
@@ -78,19 +77,19 @@ class TableImage:
                                         minLinLength=minLinLength,
                                         maxLineGap=maxLineGap,
                                         kernel_size=kernel_size)
-
-        # Create raw tables without the header in case there is no top line
-        # Create cells from rows
-        cells = get_cells(horizontal_lines=h_lines,
-                          vertical_lines=v_lines)
-
-        # Create tables from rows
-        self.tables = get_tables(cells=cells,
-                                 elements=self.contours,
-                                 lines=h_lines + v_lines,
-                                 char_length=self.char_length)
         
         if extended_heuristic:
+            # Create raw tables without the header in case there is no top line
+            # Create cells from rows
+            cells = get_cells(horizontal_lines=h_lines,
+                            vertical_lines=v_lines)
+
+            # Create tables from rows
+            self.tables = get_tables(cells=cells,
+                                    elements=self.contours,
+                                    lines=h_lines + v_lines,
+                                    char_length=self.char_length)
+
             def not_in_any_table(pos_y):
                 for table in self.tables:
                     if table.y1 <= pos_y <= table.y2:
@@ -124,19 +123,19 @@ class TableImage:
                 for i in range(0, num_add_rows):
                     pos = table.y1 - gap_h*i - k
                     if not not_in_any_table(pos):
-                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=4))
+                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=1))
                     
                     pos = table.y2 + gap_h*i + k
                     if not not_in_any_table(pos):
-                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=4))
+                        h_lines.append(Line(x1=table.x1, y1=pos, x2=table.x2, y2=pos, thickness=1))
 
                     pos = table.x1 - gap_w*i - k
                     if not check_if_x_in_table(pos):
-                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=4))
+                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=1))
                     
                     pos = table.x2 + gap_w*i + k
                     if not check_if_x_in_table(pos):
-                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=4))
+                        v_lines.append(Line(x1=pos, y1=table.y1, x2=pos, y2=table.y2, thickness=1))
                 
 
         # Finally, set all our lines
