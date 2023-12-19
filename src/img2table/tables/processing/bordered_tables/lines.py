@@ -18,6 +18,8 @@ def threshold_dark_areas(img: np.ndarray, char_length: Optional[float]) -> np.nd
     :param char_length: average character length
     :return: threshold image
     """
+    char_length = char_length or 12
+    
     # Get black image with white edges
     blur = cv2.GaussianBlur(img, (3, 3), 0)
     thresh_kernel = max(int(round(char_length)), 1) if char_length else 21
